@@ -1,8 +1,7 @@
-FROM php:8.2-fpm
+FROM php:8.2-cli
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    nginx \
     git \
     zip \
     unzip \
@@ -35,23 +34,40 @@ RUN mkdir -p /app/database \
     /app/storage/framework/sessions \
     /app/storage/framework/views && \
     touch /app/database/database.sqlite && \
-    chown -R www-data:www-data storage bootstrap/cache database && \
     chmod -R 775 storage bootstrap/cache database
 
 # Complete Composer setup
 RUN composer run-script post-autoload-dump --no-dev
 
-# Ensure .env exists and APP_KEY is set
-RUN if [ ! -f .env ]; then cp .env.example .env; fi && \
-    if ! grep -q "APP_KEY=" .env || grep -q "APP_KEY=$" .env; then \
-      php artisan key:generate --force; \
-    fi
+# Create basic .env file and generate key
+RUN echo "APP_NAME=Laravel" > .env && \
+    echo "APP_ENV=production" >> .env && \
+    echo "APP_DEBUG=false" >> .env && \
+    echo "APP_URL=${APP_URL}" >> .env && \
+    echo "LOG_CHANNEL=stderr" >> .env && \
+    echo "LOG_LEVEL=debug" >> .env && \
+    echo "" >> .env && \
+    echo "DB_CONNECTION=sqlite" >> .env && \
+    echo "DB_DATABASE=/app/database/database.sqlite" >> .env && \
+    echo "" >> .env && \
+    echo "BROADCAST_DRIVER=log" >> .env && \
+    echo "CACHE_DRIVER=file" >> .env && \
+    echo "FILESYSTEM_DISK=local" >> .env && \
+    echo "QUEUE_CONNECTION=sync" >> .env && \
+    echo "SESSION_DRIVER=file" >> .env && \
+    echo "SESSION_LIFETIME=120" >> .env && \
+    echo "APP_KEY=" >> .env && \
+    php artisan key:generate --force
 
-# Nginx config
-COPY ./nginx.conf /etc/nginx/conf.d/default.conf
+# Expose port (Railway will set PORT env var)
+EXPOSE ${PORT}
 
-# Expose port (Railway will map $PORT)
-EXPOSE 8080
-
-# Start PHP-FPM and Nginx, with log tail for debugging
-CMD php-fpm -D && nginx -g "daemon off;" && tail -f storage/logs/laravel.log
+# Start the application with debugging info
+CMD echo "=== DEBUGGING INFO ===" && \
+    echo "Files in /app:" && ls -la /app && \
+    echo "Content of .env file:" && cat /app/.env && \
+    echo "PHP version:" && php --version && \
+    echo "Starting Laravel..." && \
+    php artisan migrate --force && \
+    php artisan db:seed --force && \
+    php artisan serve --host=0.0.0.0 --port=${PORT}
