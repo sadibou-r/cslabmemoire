@@ -36,7 +36,7 @@ RUN a2enmod rewrite
 # Get latest Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Set working directory
+# Set working directory yes
 WORKDIR /var/www/html
 
 # Copy composer files first for better caching
