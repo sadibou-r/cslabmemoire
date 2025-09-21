@@ -43,7 +43,7 @@ RUN composer run-script post-autoload-dump --no-dev
 RUN echo "APP_NAME=Laravel" > .env && \
     echo "APP_ENV=production" >> .env && \
     echo "APP_DEBUG=false" >> .env && \
-    echo "APP_URL=https://\${RAILWAY_PUBLIC_DOMAIN:-localhost}" >> .env && \
+    echo "APP_URL=http://localhost" >> .env && \
     echo "LOG_CHANNEL=stderr" >> .env && \
     echo "LOG_LEVEL=error" >> .env && \
     echo "" >> .env && \
@@ -62,5 +62,5 @@ RUN echo "APP_NAME=Laravel" > .env && \
 # Railway uses PORT environment variable
 EXPOSE $PORT
 
-# Fixed startup command with proper port handlingy
+# Fixed startup command with proper port handling
 CMD ["sh", "-c", "php artisan config:cache && php artisan route:cache && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]
