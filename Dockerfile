@@ -36,5 +36,5 @@ RUN composer run-script post-autoload-dump --no-dev
 
 EXPOSE ${PORT:-8000}
 
-# Simple startup for SQLite (no external DB needed)
-CMD ["sh", "-c", "php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]
+# Startup en définissant directement les variables d'environnement
+CMD ["sh", "-c", "DB_CONNECTION=sqlite DB_DATABASE=/app/database/database.sqlite APP_ENV=production APP_DEBUG=true LOG_CHANNEL=stderr php artisan config:clear && php artisan cache:clear && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]
