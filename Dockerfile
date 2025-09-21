@@ -17,6 +17,13 @@ RUN docker-php-ext-install pdo pdo_sqlite
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# Set environment variables for SQLite
+ENV DB_CONNECTION=sqlite
+ENV DB_DATABASE=/app/database/database.sqlite
+ENV APP_ENV=production
+ENV APP_DEBUG=true
+ENV LOG_CHANNEL=stderr
+
 WORKDIR /app
 
 # Copy composer files first
@@ -36,5 +43,5 @@ RUN composer run-script post-autoload-dump --no-dev
 
 EXPOSE ${PORT:-8000}
 
-# Startup en définissant directement les variables d'environnement
-CMD ["sh", "-c", "DB_CONNECTION=sqlite DB_DATABASE=/app/database/database.sqlite APP_ENV=production APP_DEBUG=true LOG_CHANNEL=stderr php artisan config:clear && php artisan cache:clear && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]
+# Simplified CMD since environment variables are already set
+CMD ["sh", "-c", "php artisan config:clear && php artisan cache:clear && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]
