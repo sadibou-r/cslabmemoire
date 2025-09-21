@@ -62,7 +62,7 @@ RUN echo "APP_NAME=Laravel" > .env && \
 # Expose port (Railway will set PORT env var)
 EXPOSE 8000
 
-# Start the application with explicit port binding
+# Start the application with hardcoded port to match what Laravel actually uses
 CMD php artisan migrate --force && \
     php artisan db:seed --force && \
-    php artisan serve --host=0.0.0.0 --port=${PORT:-8000}
+    php artisan serve --host=0.0.0.0 --port=8080
