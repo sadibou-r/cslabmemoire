@@ -9,10 +9,11 @@ RUN apt-get update && apt-get install -y \
     sqlite3 \
     libsqlite3-dev \
     pkg-config \
+    libonig-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions
-RUN docker-php-ext-install pdo pdo_sqlite
+# Install PHP extensions (added mbstring and other Laravel essentials)
+RUN docker-php-ext-install pdo pdo_sqlite mbstring
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -30,18 +31,22 @@ COPY . .
 RUN mkdir -p /app/database && \
     touch /app/database/database.sqlite && \
     mkdir -p /app/storage/app/public/images && \
-    chmod -R 755 storage bootstrap/cache database
+    mkdir -p /app/storage/logs && \
+    mkdir -p /app/storage/framework/{cache,sessions,views} && \
+    chmod -R 775 storage bootstrap/cache database && \
+    chown -R www-data:www-data storage bootstrap/cache database
 
 # Complete composer setup
 RUN composer run-script post-autoload-dump --no-dev
 
-# Generate a random key and create .env file in one step
-RUN php -r "echo 'APP_KEY=base64:' . base64_encode(random_bytes(32)) . PHP_EOL;" > .env && \
-    echo "APP_NAME=Laravel" >> .env && \
+# Generate application key and create .env file
+RUN php artisan key:generate --force && \
+    echo "APP_NAME=Laravel" > .env && \
     echo "APP_ENV=production" >> .env && \
-    echo "APP_DEBUG=true" >> .env && \
-    echo "APP_URL=http://localhost" >> .env && \
+    echo "APP_DEBUG=false" >> .env && \
+    echo "APP_URL=https://\${RAILWAY_PUBLIC_DOMAIN:-localhost}" >> .env && \
     echo "LOG_CHANNEL=stderr" >> .env && \
+    echo "LOG_LEVEL=error" >> .env && \
     echo "" >> .env && \
     echo "DB_CONNECTION=sqlite" >> .env && \
     echo "DB_DATABASE=/app/database/database.sqlite" >> .env && \
@@ -51,9 +56,11 @@ RUN php -r "echo 'APP_KEY=base64:' . base64_encode(random_bytes(32)) . PHP_EOL;"
     echo "FILESYSTEM_DISK=local" >> .env && \
     echo "QUEUE_CONNECTION=sync" >> .env && \
     echo "SESSION_DRIVER=file" >> .env && \
-    echo "SESSION_LIFETIME=120" >> .env
+    echo "SESSION_LIFETIME=120" >> .env && \
+    php artisan key:generate --force
 
-EXPOSE ${PORT:-8000}
+# Railway uses PORT environment variable
+EXPOSE $PORT
 
-# Simplified CMD since .env is already configured
-CMD ["sh", "-c", "php artisan config:clear && php artisan cache:clear && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]
+# Fixed startup command with proper port handling
+CMD ["sh", "-c", "php artisan config:cache && php artisan route:cache && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]
