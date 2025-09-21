@@ -39,9 +39,8 @@ RUN mkdir -p /app/database && \
 # Complete composer setup
 RUN composer run-script post-autoload-dump --no-dev
 
-# Generate application key and create .env file
-RUN php artisan key:generate --force && \
-    echo "APP_NAME=Laravel" > .env && \
+# Create .env file first, then generate application key
+RUN echo "APP_NAME=Laravel" > .env && \
     echo "APP_ENV=production" >> .env && \
     echo "APP_DEBUG=false" >> .env && \
     echo "APP_URL=https://\${RAILWAY_PUBLIC_DOMAIN:-localhost}" >> .env && \
@@ -57,10 +56,11 @@ RUN php artisan key:generate --force && \
     echo "QUEUE_CONNECTION=sync" >> .env && \
     echo "SESSION_DRIVER=file" >> .env && \
     echo "SESSION_LIFETIME=120" >> .env && \
+    echo "APP_KEY=" >> .env && \
     php artisan key:generate --force
 
 # Railway uses PORT environment variable
 EXPOSE $PORT
 
-# Fixed startup command with proper port handling
+# Fixed startup command with proper port handlingy
 CMD ["sh", "-c", "php artisan config:cache && php artisan route:cache && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]
